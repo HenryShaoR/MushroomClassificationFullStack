@@ -83,13 +83,14 @@ function App() {
     }, [handleLr]);
 
 
+    const [yoloLoading, setYoloLoading] = useState<boolean>(false);
     const handleYOLO = useCallback(async () => {
         if (imageUrl === '') {
             setDetectionBoxes([]);
             return;
         }
 
-        setLrLoading(true);
+        setYoloLoading(true);
         try {
             const res = await fetch(`${baseUrl}/analyze`, {
                 method: "POST",
@@ -106,7 +107,7 @@ function App() {
         } catch (error) {
             console.error(error);
         } finally {
-            setLrLoading(false);
+            setYoloLoading(false);
         }
     }, [imageUrl]);
 
@@ -185,19 +186,25 @@ function App() {
             {/* Right: 13 dropdowns */}
             <div className="w-full max-h-screen overflow-y-auto p-6 space-y-6">
                 <div className="w-full flex-col">
-                    <h2 className="text-lg font-semibold">
-                        { mostProbable.length === 0 ?
-                            "We didn't Find any mushrooms in the image":
-                            <>
-                                The most probable mushroom in the image is
-                                {` ${mostProbable[0]} (${mostProbable[6] ? 'poisonous' : 'edible'}).`}
-                                <br/>
-                                We are
-                                <span className={getPercentageColour(mostProbable[5])}>{` ${Math.round(mostProbable[5]*10000)/100.0}% `}</span>
-                                confident on that.
-                            </>
-                        }
-                    </h2>
+                    { yoloLoading ?
+                        <div className="flex justify-center items-center space-x-2 mt-4">
+                            <div className="w-6 h-6 border-2 border-t-transparent border-blue-500 rounded-full animate-spin"></div>
+                            <span className="text-blue-500">Analysing...</span>
+                        </div> :
+                        <h2 className="text-lg font-semibold">
+                            { mostProbable.length === 0 ?
+                                "We didn't Find any mushrooms in the image":
+                                <>
+                                    The most probable mushroom in the image is
+                                    {` ${mostProbable[0]} (${mostProbable[6] ? 'poisonous' : 'edible'}).`}
+                                    <br/>
+                                    We are
+                                    <span className={getPercentageColour(mostProbable[5])}>{` ${Math.round(mostProbable[5]*10000)/100.0}% `}</span>
+                                    confident on that.
+                                </>
+                            }
+                        </h2>
+                    }
                     { lrLoading ?
                         <div className="flex justify-center items-center space-x-2 mt-4">
                             <div className="w-6 h-6 border-2 border-t-transparent border-blue-500 rounded-full animate-spin"></div>
