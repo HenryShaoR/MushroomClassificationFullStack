@@ -16,13 +16,13 @@ function App() {
 
     const getPercentageColour = (percentage: number | null) => {
         return  percentage === null ? "text-red-600" :
-            percentage < 20 ?
+            percentage > 80 ?
                 "text-green-500" :
-                percentage < 40 ?
+                percentage > 60 ?
                     "text-yellow-400" :
-                    percentage < 60 ?
+                    percentage > 40 ?
                         "text-yellow-600" :
-                        percentage < 80 ?
+                        percentage > 20 ?
                             "text-orange-600" :
                             "text-red-600"
     };
@@ -195,11 +195,12 @@ function App() {
                             { mostProbable.length === 0 ?
                                 "We didn't Find any mushrooms in the image":
                                 <>
-                                    The most probable mushroom in the image is
-                                    {` ${mostProbable[0]} (${mostProbable[6] ? 'poisonous' : 'edible'}).`}
+                                    The most probable mushroom in the image is&nbsp;
+                                    {mostProbable[0]}
+                                    <span className={mostProbable[6] ? "text-red-600" : "text-green-600"}>{mostProbable[6] ? ' (poisonous)' : ' (edible)'}</span>.
                                     <br/>
                                     We are
-                                    <span className={getPercentageColour(mostProbable[5])}>{` ${Math.round(mostProbable[5]*10000)/100.0}% `}</span>
+                                    <span className={getPercentageColour(mostProbable[5] * 100)}>{` ${Math.round(mostProbable[5]*10000)/100.0}% `}</span>
                                     confident on that.
                                 </>
                             }
@@ -216,8 +217,10 @@ function App() {
                                     'Please provide some features to analyse':
                                     <>
                                         It is
-                                        <span className={`${getPercentageColour(lrResult)}`}>{' ' + lrResult + '% '}</span>
-                                        that the mushroom is poisonous based on the features you provided below
+                                        <span className={`${getPercentageColour(2*Math.max(lrResult, 100 - lrResult)-100)}`}>{' ' + String(Math.max(lrResult, 100 - lrResult)).substring(0, 5) + '% '}</span>
+                                        that the mushroom is
+                                        <span className={lrResult > 100 - lrResult ? "text-red-600" : "text-green-600"}>{lrResult > 100 - lrResult ? ' poisonous ' : ' edible '}</span>
+                                        based on the features you provided below
                                     </>
                                 }
                             </h2>
