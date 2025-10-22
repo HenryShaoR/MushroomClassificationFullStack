@@ -12,7 +12,7 @@ interface DropDownListProps {
 const DropDownList: React.FC<DropDownListProps> = ({idx, label, options, onSelect, selected}) => {
     return (
         <div key={idx} className="flex flex-col">
-            <label htmlFor={`select-${idx}`} className="mb-1 text-sm text-gray-700">
+            <label htmlFor={`select-${idx}`} className="mb-1 text-sm text-gray-700 truncate">
                 {label}
             </label>
             <select

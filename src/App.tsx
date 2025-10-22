@@ -184,7 +184,7 @@ function App() {
             </div>
 
             {/* Right: 13 dropdowns */}
-            <div className="w-full max-h-screen overflow-y-auto p-6 space-y-6">
+            <div className="w-full max-h-screen overflow-y-auto p-6">
                 <div className="w-full flex-col">
                     { yoloLoading ?
                         <div className="flex justify-center items-center space-x-2 mt-4">
@@ -193,7 +193,7 @@ function App() {
                         </div> :
                         <h2 className="text-lg font-semibold">
                             { mostProbable.length === 0 ?
-                                "We didn't Find any mushrooms in the image":
+                                "We didn't find any mushrooms in the image":
                                 <>
                                     The most probable mushroom in the image is&nbsp;
                                     {mostProbable[0]}
@@ -225,7 +225,7 @@ function App() {
                                 }
                             </h2>
                             {0 < validFeatureCount && validFeatureCount <= 3 &&
-                                <h2 className="whitespace-pre-wrap mt-6 text-orange-600">
+                                <h2 className="whitespace-pre-wrap mt-2 text-orange-600">
                                     {`You provided ${validFeatureCount} features, which might not provide an accurate result`}
                                 </h2>
                             }
@@ -234,14 +234,17 @@ function App() {
                 </div>
                 { mostProbable.length > 0 && lrResult !== null &&
                     <>
-                        <div className="border-t border-gray-200 pb-6"/>
-                        <span className={mostProbable[6] === lrResult >= 50 ? "text-green-500" : "text-red-500"}>
-                            {mostProbable[6] === lrResult >= 50 ? "Analysis from image and features agree using 50% threshold." : "WARNING: Analysis from image and features DISAGREE using 50% threshold. Please proceed with care."}
-                        </span>
+                        <div className="border-t border-gray-200 mt-3 pb-3"/>
+                        <div className="flex items-center justify-center items-center">
+                            <span className={mostProbable[6] === lrResult >= 50 ? "text-green-500" : "text-red-500"}>
+                                {mostProbable[6] === lrResult >= 50 ? "Analysis from image and features agree using 50% threshold." : "WARNING: Analysis from image and features DISAGREE using 50% threshold. Please proceed with care."}
+                            </span>
+                        </div>
                     </>
                 }
-                <div className="border-b border-gray-200"/>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="border-t border-gray-200 mt-3 pb-6"/>
+                <span>Help us to verify our conclusion by providing details that might not be visible in the image:</span>
+                <div className="grid grid-cols-2 gap-4 mt-3">
                     {featureList.map((feature, idx) => (
                         <DropDownList
                             key={feature}
