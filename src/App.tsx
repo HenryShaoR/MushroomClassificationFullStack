@@ -3,6 +3,7 @@ import ImageUpload from "./Component/ImageUpload.tsx";
 import features, {featureList} from "./features.ts";
 import DropDownList from "./Component/DropDownList.tsx";
 import {normalize} from "./util.ts";
+import type {DetectionBox} from "./types.ts";
 
 function App() {
     const baseUrl = "http://localhost:8000";
@@ -12,21 +13,38 @@ function App() {
     const [lrResult, setLrResult] = useState<number | null>(null);
     const [lrLoading, setLrLoading] = useState<boolean>(false);
     const {validFeatureCount} = useMemo(() => ({validFeatureCount: chosen.filter(f => f !== "").length}), [chosen]);
-    const {percentageColour} = useMemo(() => ({
-        percentageColour: lrResult === null ? "text-red-900" :
-            lrResult < 20 ?
-            "text-green-500" :
-            lrResult < 40 ?
-                "text-yellow-400" :
-                lrResult < 60 ?
-                    "text-yellow-600" :
-                    lrResult < 80 ?
-                        "text-orange-600" :
-                        "text-red-600"
-    }), [lrResult]);
+
+    const getPercentageColour = (percentage: number | null) => {
+        return  percentage === null ? "text-red-600" :
+            percentage < 20 ?
+                "text-green-500" :
+                percentage < 40 ?
+                    "text-yellow-400" :
+                    percentage < 60 ?
+                        "text-yellow-600" :
+                        percentage < 80 ?
+                            "text-orange-600" :
+                            "text-red-600"
+    };
+
+    const [detectionBoxes, setDetectionBoxes] = useState<DetectionBox[]>([]);
+    const { w, h } = useMemo(() => {
+        const img = new Image();
+        const dimensions = { w: 0, h: 0 };
+        img.onload = () => {
+            dimensions.w = img.naturalWidth;
+            dimensions.h = img.naturalHeight;
+        };
+        img.src = imageUrl;
+        return dimensions;
+    }, [imageUrl]);
+
+    useEffect(() => {
+        console.log(w, h);
+    }, [w, h]);
 
 
-    const handleSubmit = useCallback(async () => {
+    const handleLr = useCallback(async () => {
         const payload: {[feature: string]: string} = {};
         for (let i = 0; i < featureList.length; i++) {
             if (chosen[i]) {
@@ -61,8 +79,86 @@ function App() {
     }, [chosen]);
 
     useEffect(() => {
-        handleSubmit().then();
-    }, [handleSubmit]);
+        handleLr().then();
+    }, [handleLr]);
+
+
+    const handleYOLO = useCallback(async () => {
+        if (imageUrl === '') {
+            setDetectionBoxes([]);
+            return;
+        }
+
+        setLrLoading(true);
+        try {
+            const res = await fetch(`${baseUrl}/analyze`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({image: imageUrl}),
+            });
+
+            if (!res.ok) {
+                console.error(res.statusText);
+                return;
+            }
+
+            setDetectionBoxes(await res.json() as DetectionBox[]);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLrLoading(false);
+        }
+    }, [imageUrl]);
+
+    useEffect(() => {
+        handleYOLO().then();
+    }, [handleYOLO]);
+
+    const {detectionBoxesUrl} = useMemo(() => {
+        if (detectionBoxes.length === 0) return {detectionBoxes: ''};
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = w;
+        canvas.height = h;
+
+        if (!ctx) {
+            console.error("Cannot find Canvas Rendering Context");
+            return {detectionBoxesUrl: ''};
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        detectionBoxes.forEach(([species, x, y, x2, y2, conf, is_poisonous]) => {
+            ctx.strokeStyle = 'blue';
+            ctx.lineWidth = 5;
+            ctx.strokeRect(x, y, x2 - x, y2 - y);
+
+            const text = `${Math.round(conf*10000) / 100.0}% is ${species} (${is_poisonous ? 'poisonous' : 'edible'})`;
+            const fontSize = 30;
+            ctx.font = `${fontSize}px Arial`;
+            ctx.fillStyle = 'white';
+
+            const backgroundColor = 'blue';
+
+            const textWidth = ctx.measureText(text).width;
+            const textHeight = fontSize;
+
+            const padding = 10;
+            ctx.fillStyle = backgroundColor;
+            ctx.fillRect(x, y, textWidth + 2 * padding, textHeight + 2 * padding);
+
+            ctx.fillStyle = 'white';
+            ctx.fillText(text, x + padding, y + textHeight + padding);
+        });
+        return {detectionBoxesUrl: canvas.toDataURL('image/png')};
+    }, [detectionBoxes, w, h]);
+
+    const {mostProbable} = useMemo(() => ({
+        mostProbable: detectionBoxes.length === 0 ? [] : detectionBoxes
+            .reduce((b, prev) => b[5] > prev[5] ? b : prev)
+    }), [detectionBoxes]);
 
     return (
         <div className="h-screen w-full flex space-x-4">
@@ -79,9 +175,7 @@ function App() {
                                 alt=""
                                 className="absolute z-10 cursor-pointer"
                             />
-                            <div className="absolute z-20 cursor-pointer">
-                                Overlap
-                            </div>
+                            <img src={detectionBoxesUrl} alt="" className="absolute z-20 cursor-pointer"></img>
                         </div> :
                         <ImageUpload setUrl={setImageUrl} />
                     }
@@ -91,7 +185,19 @@ function App() {
             {/* Right: 13 dropdowns */}
             <div className="w-full max-h-screen overflow-y-auto p-6 space-y-6">
                 <div className="w-full flex-col">
-                    <h2 className="text-lg font-semibold">The mushroom is ...</h2>
+                    <h2 className="text-lg font-semibold">
+                        { mostProbable.length === 0 ?
+                            "We didn't Find any mushrooms in the image":
+                            <>
+                                The most probable mushroom in the image is
+                                {` ${mostProbable[0]} (${mostProbable[6] ? 'poisonous' : 'edible'}).`}
+                                <br/>
+                                We are
+                                <span className={getPercentageColour(mostProbable[5])}>{` ${Math.round(mostProbable[5]*10000)/100.0}% `}</span>
+                                confident on that.
+                            </>
+                        }
+                    </h2>
                     { lrLoading ?
                         <div className="flex justify-center items-center space-x-2 mt-4">
                             <div className="w-6 h-6 border-2 border-t-transparent border-blue-500 rounded-full animate-spin"></div>
@@ -103,7 +209,7 @@ function App() {
                                     'Please provide some features to analyse':
                                     <>
                                         It is
-                                        <span className={`${percentageColour}`}>{' ' + lrResult + '% '}</span>
+                                        <span className={`${getPercentageColour(lrResult)}`}>{' ' + lrResult + '% '}</span>
                                         that the mushroom is poisonous based on the features you provided below
                                     </>
                                 }

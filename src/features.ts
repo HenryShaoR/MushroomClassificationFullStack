@@ -1,11 +1,4 @@
-export interface FeaturesType {
-    value: string;
-    label: string;
-}
-
-export interface FeaturesTypes {
-    [feature: string]: FeaturesType[];
-}
+import type {FeaturesTypes} from "./types.ts";
 
 const features: FeaturesTypes = {
     "odor": [
