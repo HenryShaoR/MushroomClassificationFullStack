@@ -6,9 +6,10 @@ interface DropDownListProps {
     label: string;
     options: {value: string, label: string}[];
     onSelect: (opt: string) => void;
+    selected: string;
 }
 
-const DropDownList: React.FC<DropDownListProps> = ({idx, label, options, onSelect}) => {
+const DropDownList: React.FC<DropDownListProps> = ({idx, label, options, onSelect, selected}) => {
     return (
         <div key={idx} className="flex flex-col">
             <label htmlFor={`select-${idx}`} className="mb-1 text-sm text-gray-700">
@@ -17,7 +18,7 @@ const DropDownList: React.FC<DropDownListProps> = ({idx, label, options, onSelec
             <select
                 id={`select-${idx}`}
                 className="h-10 rounded border border-gray-300 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                defaultValue=""
+                value={selected}
                 onChange={(e) => onSelect(e.target.value)}
             >
                 <option key="" value="">--</option>
