@@ -228,8 +228,15 @@ function App() {
                             }
                         </>
                     }
-
                 </div>
+                { mostProbable.length > 0 && lrResult !== null &&
+                    <>
+                        <div className="border-t border-gray-200 pb-6"/>
+                        <span className={mostProbable[6] === lrResult >= 50 ? "text-green-500" : "text-red-500"}>
+                            {mostProbable[6] === lrResult >= 50 ? "Analysis from image and features agree using 50% threshold." : "WARNING: Analysis from image and features DISAGREE using 50% threshold. Please proceed with care."}
+                        </span>
+                    </>
+                }
                 <div className="border-b border-gray-200"/>
                 <div className="grid grid-cols-2 gap-4">
                     {featureList.map((feature, idx) => (
