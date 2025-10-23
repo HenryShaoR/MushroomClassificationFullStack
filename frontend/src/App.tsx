@@ -1,9 +1,9 @@
-import {useCallback, useEffect, useMemo, useState} from 'react'
-import ImageUpload from "./Component/ImageUpload.tsx";
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import features, {featureList} from "./features.ts";
 import DropDownList from "./Component/DropDownList.tsx";
 import {normalize} from "./util.ts";
 import type {DetectionBox} from "./types.ts";
+import {FiPause, FiPlay} from "react-icons/fi";
 
 function App() {
     const baseUrl = "http://localhost:8000";
@@ -13,6 +13,7 @@ function App() {
     const [lrResult, setLrResult] = useState<number | null>(null);
     const [lrLoading, setLrLoading] = useState<boolean>(false);
     const {validFeatureCount} = useMemo(() => ({validFeatureCount: chosen.filter(f => f !== "").length}), [chosen]);
+    const isCaptured = useRef<boolean>(false);
 
     const getPercentageColour = (percentage: number | null) => {
         return  percentage === null ? "text-red-600" :
@@ -38,10 +39,6 @@ function App() {
         img.src = imageUrl;
         return dimensions;
     }, [imageUrl]);
-
-    useEffect(() => {
-        console.log(w, h);
-    }, [w, h]);
 
 
     const handleLr = useCallback(async () => {
@@ -84,35 +81,55 @@ function App() {
 
 
     const [yoloLoading, setYoloLoading] = useState<boolean>(false);
-    const handleYOLO = useCallback(async () => {
-        if (imageUrl === '') {
+    const handleYOLO = useCallback(async (analyse: boolean) => {
+        if (imageUrl === '' || (isCaptured.current && !analyse)) {
             setDetectionBoxes([]);
             return;
         }
 
-        setYoloLoading(true);
-        try {
-            const res = await fetch(`${baseUrl}/analyze`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({image: imageUrl}),
-            });
+        if (analyse) {
+            setYoloLoading(true);
+            try {
+                const res = await fetch(`${baseUrl}/analyze`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({image: imageUrl}),
+                });
 
-            if (!res.ok) {
-                console.error(res.statusText);
-                return;
+                if (!res.ok) {
+                    console.error(res.statusText);
+                    return;
+                }
+
+                setDetectionBoxes(await res.json() as DetectionBox[]);
+            } catch (error) {
+                console.error(error);
+            } finally {
+                setYoloLoading(false);
             }
+        } else {
+            try {
+                const res = await fetch(`${baseUrl}/detect`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({image: imageUrl}),
+                });
 
-            setDetectionBoxes(await res.json() as DetectionBox[]);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setYoloLoading(false);
+                if (!res.ok) {
+                    console.error(res.statusText);
+                    return;
+                }
+                const detBoxes: Partial<DetectionBox>[] = await res.json();
+                const detectionBoxes = detBoxes.map(b => ["", b[0], b[1], b[2], b[3], 0, true]);
+                setDetectionBoxes(detectionBoxes as DetectionBox[]);
+            } catch (error) {
+                console.error(error);
+            }
         }
     }, [imageUrl]);
 
     useEffect(() => {
-        handleYOLO().then();
+        handleYOLO(false).then();
     }, [handleYOLO]);
 
     const {detectionBoxesUrl} = useMemo(() => {
@@ -136,50 +153,115 @@ function App() {
             ctx.lineWidth = 5;
             ctx.strokeRect(x, y, x2 - x, y2 - y);
 
-            const text = `${Math.round(conf*10000) / 100.0}% is ${species} (${is_poisonous ? 'poisonous' : 'edible'})`;
-            const fontSize = 30;
-            ctx.font = `${fontSize}px Arial`;
-            ctx.fillStyle = 'white';
+            if(isCaptured.current) {
+                const text = `${Math.round(conf*10000) / 100.0}% is ${species} (${is_poisonous ? 'poisonous' : 'edible'})`;
+                const fontSize = 30;
+                ctx.font = `${fontSize}px Arial`;
+                ctx.fillStyle = 'white';
 
-            const backgroundColor = 'blue';
+                const backgroundColor = 'blue';
 
-            const textWidth = ctx.measureText(text).width;
-            const textHeight = fontSize;
+                const textWidth = ctx.measureText(text).width;
+                const textHeight = fontSize;
 
-            const padding = 10;
-            ctx.fillStyle = backgroundColor;
-            ctx.fillRect(x, y, textWidth + 2 * padding, textHeight + 2 * padding);
+                const padding = 10;
+                ctx.fillStyle = backgroundColor;
+                ctx.fillRect(x, y, textWidth + 2 * padding, textHeight + 2 * padding);
 
-            ctx.fillStyle = 'white';
-            ctx.fillText(text, x + padding, y + textHeight + padding);
+                ctx.fillStyle = 'white';
+                ctx.fillText(text, x + padding, y + textHeight + padding);
+            }
         });
         return {detectionBoxesUrl: canvas.toDataURL('image/png')};
     }, [detectionBoxes, w, h]);
 
     const {mostProbable} = useMemo(() => ({
-        mostProbable: detectionBoxes.length === 0 ? [] : detectionBoxes
+        mostProbable: detectionBoxes.length === 0 || !isCaptured.current ? [] : detectionBoxes
             .reduce((b, prev) => b[5] > prev[5] ? b : prev)
     }), [detectionBoxes]);
 
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+
+    useEffect(() => {
+        const getCameraStream = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                    // Ensure video element size is properly set
+                    videoRef.current.onloadedmetadata = () => {
+                        if (videoRef.current) {
+                            videoRef.current.play(); // Ensure video starts playing
+                        }
+                    };
+                }
+            } catch (err) {
+                console.error("Error accessing the camera: ", err);
+            }
+        };
+
+        getCameraStream().then();
+
+        // Cleanup function to stop the stream when the component unmounts
+        return () => {
+            const video = videoRef.current;
+            if (video && video.srcObject) {
+                const stream = video.srcObject as MediaStream;
+                const tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        const captureFrameAtInterval = () => {
+            const fps = 10;
+            const interval = 1000 / fps;
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            setInterval(() => {
+                if (!isCaptured.current && videoRef.current) {
+                    const video = videoRef.current;
+
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+
+                    if (video && ctx) {
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        const base64 = canvas.toDataURL('image/png');
+                        setImageUrl(base64);
+                    }
+                }
+            }, interval);
+        };
+
+        captureFrameAtInterval()
+    }, []);
+
     return (
-        <div className="h-screen w-full flex space-x-4">
+        <div className="h-screen w-full flex space-x-4 bg-gray-100">
             {/* Left: Image upload/display */}
             <div className="w-full border-r border-gray-200 flex items-center justify-center p-6 justify-items-center">
-                <div className="w-full h-full flex items-center justify-center justify-items-center">
-                    { imageUrl ?
-                        <div
-                            className="relative w-full h-full flex items-center justify-center justify-items-center"
-                            onClick={() => setImageUrl('')}
-                        >
-                            <img
-                                src={imageUrl}
-                                alt=""
-                                className="absolute z-10 cursor-pointer"
-                            />
-                            <img src={detectionBoxesUrl} alt="" className="absolute z-20 cursor-pointer"></img>
-                        </div> :
-                        <ImageUpload setUrl={setImageUrl} />
-                    }
+                <div className="w-full h-full flex items-center justify-center justify-items-center relative" >
+                    <video ref={videoRef} className="hidden"/>
+                    <img src={imageUrl} alt="Live Image" className="absolute z-10 cursor-pointer" />
+                    <img src={detectionBoxesUrl} alt="" className="absolute z-20 cursor-pointer"/>
+                    <button
+                        onClick={() => {
+                            if (!isCaptured.current) {
+                                setDetectionBoxes([]);
+                                handleYOLO(true).then();
+                            }
+                            isCaptured.current = !isCaptured.current
+                        }}
+                        className="absolute z-30 bottom-5 left-1/2 transform -translate-x-1/2 p-4 text-lg font-semibold bg-white rounded-full shadow-lg transition-all"
+                    >
+                        { isCaptured.current ?
+                            <FiPlay /> : <FiPause />
+                        }
+                    </button>
                 </div>
             </div>
 
@@ -235,7 +317,7 @@ function App() {
                 { mostProbable.length > 0 && lrResult !== null &&
                     <>
                         <div className="border-t border-gray-200 mt-3 pb-3"/>
-                        <div className="flex items-center justify-center items-center">
+                        <div className="flex items-center justify-center">
                             <span className={mostProbable[6] === lrResult >= 50 ? "text-green-500" : "text-red-500"}>
                                 {mostProbable[6] === lrResult >= 50 ? "Analysis from image and features agree using 50% threshold." : "WARNING: Analysis from image and features DISAGREE using 50% threshold. Please proceed with care."}
                             </span>

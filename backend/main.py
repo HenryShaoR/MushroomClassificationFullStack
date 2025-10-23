@@ -51,7 +51,7 @@ async def detect(request: Request) -> List[Tuple[int, int, int, int]]:
     if not image:
         return []
     im = decode_image_to_pil(image)
-    results = det(im, verbose=False)
+    results = det(im, verbose=False, max_det=1)
     out = []
     for r in results:
         xyxy = r.boxes.xyxy.cuda().tolist() if torch.cuda.is_available() else r.boxes.xyxy.cpu().tolist()
