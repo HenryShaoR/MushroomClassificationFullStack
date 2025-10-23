@@ -70,7 +70,7 @@ async def analyze(request: Request) -> List[Tuple[str, int, int, int, int, float
     if not image:
         return []
     im = decode_image_to_pil(image)
-    det_results = det(im, verbose=False, max_det=5)
+    det_results = det(im, verbose=False, max_det=3)
     out = []
     for r in det_results:
         xyxy = r.boxes.xyxy.cuda().tolist() if torch.cuda.is_available() else r.boxes.xyxy.cpu().tolist()

@@ -14,6 +14,7 @@ function App() {
     const [lrLoading, setLrLoading] = useState<boolean>(false);
     const {validFeatureCount} = useMemo(() => ({validFeatureCount: chosen.filter(f => f !== "").length}), [chosen]);
     const isCaptured = useRef<boolean>(false);
+    const isAnalysing = useRef<boolean>(false);
 
     const getPercentageColour = (percentage: number | null) => {
         return  percentage === null ? "text-red-600" :
@@ -83,12 +84,12 @@ function App() {
     const [yoloLoading, setYoloLoading] = useState<boolean>(false);
     const handleYOLO = useCallback(async (analyse: boolean) => {
         if (imageUrl === '' || (isCaptured.current && !analyse)) {
-            setDetectionBoxes([]);
             return;
         }
 
         if (analyse) {
             setYoloLoading(true);
+            isAnalysing.current = true;
             try {
                 const res = await fetch(`${baseUrl}/analyze`, {
                     method: "POST",
@@ -106,6 +107,7 @@ function App() {
                 console.error(error);
             } finally {
                 setYoloLoading(false);
+                isAnalysing.current = false;
             }
         } else {
             try {
@@ -133,7 +135,7 @@ function App() {
     }, [handleYOLO]);
 
     const {detectionBoxesUrl} = useMemo(() => {
-        if (detectionBoxes.length === 0) return {detectionBoxes: ''};
+        if (detectionBoxes.length === 0) return {detectionBoxesUrl: ''};
 
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -215,14 +217,14 @@ function App() {
 
     useEffect(() => {
         const captureFrameAtInterval = () => {
-            const fps = 10;
+            const fps = 20;
             const interval = 1000 / fps;
 
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
 
             setInterval(() => {
-                if (!isCaptured.current && videoRef.current) {
+                if (!isCaptured.current && videoRef.current && !isAnalysing.current) {
                     const video = videoRef.current;
 
                     canvas.width = video.videoWidth;
@@ -246,15 +248,15 @@ function App() {
             <div className="w-full border-r border-gray-200 flex items-center justify-center p-6 justify-items-center">
                 <div className="w-full h-full flex items-center justify-center justify-items-center relative" >
                     <video ref={videoRef} className="hidden"/>
-                    <img src={imageUrl} alt="Live Image" className="absolute z-10 cursor-pointer" />
-                    <img src={detectionBoxesUrl} alt="" className="absolute z-20 cursor-pointer"/>
+                    <img src={imageUrl || null} alt="Live Image" className="absolute z-10 cursor-pointer" />
+                    <img src={detectionBoxesUrl || null} alt="" className="absolute z-20 cursor-pointer"/>
                     <button
                         onClick={() => {
-                            if (!isCaptured.current) {
+                            isCaptured.current = !isCaptured.current;
+                            if (isCaptured.current) {
                                 setDetectionBoxes([]);
                                 handleYOLO(true).then();
                             }
-                            isCaptured.current = !isCaptured.current
                         }}
                         className="absolute z-30 bottom-5 left-1/2 transform -translate-x-1/2 p-4 text-lg font-semibold bg-white rounded-full shadow-lg transition-all"
                     >
