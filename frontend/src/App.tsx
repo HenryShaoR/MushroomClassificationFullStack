@@ -269,88 +269,90 @@ function App() {
             </div>
 
             {/* Right: 13 dropdowns */}
-            <div className="w-full max-h-screen overflow-y-auto p-6">
+            <div className="w-full max-h-screen overflow-y-auto p-6 space-y-6">
                 <div className="w-full flex-col">
-                    { yoloLoading ?
-                        <div className="flex justify-center items-center space-x-2 mt-4">
-                            <div className="w-6 h-6 border-2 border-t-transparent border-blue-500 rounded-full animate-spin"></div>
-                            <span className="text-blue-500">Analysing...</span>
-                        </div> :
-                        <h2 className="text-lg font-semibold">
-                            { mostProbable.length === 0 ?
-                                "We didn't find any mushrooms in the image":
-                                <>
-                                    The most probable mushroom in the image is&nbsp;
-                                    <button className="underline text-blue-500" onClick={() => {window.open(`https://www.google.com/search?q=${encodeURIComponent(mostProbable[0])}`, '_blank')}}>{mostProbable[0]}</button>
-                                    <span className={mostProbable[6] ? "text-red-600" : "text-green-600"}>{mostProbable[6] ? ' (poisonous)' : ' (edible)'}</span>.
-                                    <br/>
-                                    We are
-                                    <span className={getPercentageColour(mostProbable[5] * 100)}>{` ${Math.round(mostProbable[5]*10000)/100.0}% `}</span>
-                                    confident on that.
-                                </>
-                            }
-                        </h2>
-                    }
-                    { lrLoading ?
-                        <div className="flex justify-center items-center space-x-2 mt-4">
-                            <div className="w-6 h-6 border-2 border-t-transparent border-blue-500 rounded-full animate-spin"></div>
-                            <span className="text-blue-500">Analysing...</span>
-                        </div> :
-                        <>
-                            <h2 className="whitespace-pre-wrap mt-4">
-                                {lrResult === null ?
-                                    'Please provide some features to analyse':
+                    <div className="w-full flex-col p-6 bg-white rounded-2xl shadow-xl space-y-3">
+                        { yoloLoading ?
+                            <div className="flex justify-center items-center space-x-2">
+                                <div className="w-6 h-6 border-2 border-t-transparent border-blue-500 rounded-full animate-spin"></div>
+                                <span className="text-blue-500">Analysing...</span>
+                            </div> :
+                            <h2 className="text-lg font-semibold">
+                                { mostProbable.length === 0 ?
+                                    "We didn't find any mushrooms in the image":
                                     <>
-                                        It is
-                                        <span className={`${getPercentageColour(2*Math.max(lrResult, 100 - lrResult)-100)}`}>{' ' + String(Math.max(lrResult, 100 - lrResult)).substring(0, 5) + '% '}</span>
-                                        that the mushroom is
-                                        <span className={lrResult > 100 - lrResult ? "text-red-600" : "text-green-600"}>{lrResult > 100 - lrResult ? ' poisonous ' : ' edible '}</span>
-                                        based on the features you provided below
+                                        The most probable mushroom in the image is&nbsp;
+                                        <button className="underline text-blue-500" onClick={() => {window.open(`https://www.google.com/search?q=${encodeURIComponent(mostProbable[0])}`, '_blank')}}>{mostProbable[0]}</button>
+                                        <span className={mostProbable[6] ? "text-red-600" : "text-green-600"}>{mostProbable[6] ? ' (poisonous)' : ' (edible)'}</span>.
+                                        <br/>
+                                        We are
+                                        <span className={getPercentageColour(mostProbable[5] * 100)}>{` ${Math.round(mostProbable[5]*10000)/100.0}% `}</span>
+                                        confident on that.
                                     </>
                                 }
                             </h2>
-                            {0 < validFeatureCount && validFeatureCount <= 3 &&
-                                <h2 className="whitespace-pre-wrap mt-2 text-orange-600">
-                                    {`You provided ${validFeatureCount} features, which might not provide an accurate result`}
+                        }
+                        { lrLoading ?
+                            <div className="flex justify-center items-center space-x-2">
+                                <div className="w-6 h-6 border-2 border-t-transparent border-blue-500 rounded-full animate-spin"></div>
+                                <span className="text-blue-500">Analysing...</span>
+                            </div> :
+                            <>
+                                <h2 className="whitespace-pre-wrap">
+                                    {lrResult === null ?
+                                        'Please provide some features to analyse':
+                                        <>
+                                            It is
+                                            <span className={`${getPercentageColour(2*Math.max(lrResult, 100 - lrResult)-100)}`}>{' ' + String(Math.max(lrResult, 100 - lrResult)).substring(0, 5) + '% '}</span>
+                                            that the mushroom is
+                                            <span className={lrResult > 100 - lrResult ? "text-red-600" : "text-green-600"}>{lrResult > 100 - lrResult ? ' poisonous ' : ' edible '}</span>
+                                            based on the features you provided below
+                                        </>
+                                    }
                                 </h2>
-                            }
-                        </>
-                    }
-                </div>
-                { mostProbable.length > 0 && lrResult !== null &&
-                    <>
-                        <div className="border-t border-gray-200 mt-3 pb-3"/>
-                        <div className="flex items-center justify-center">
-                            <span className={mostProbable[6] === lrResult >= 50 ? "text-green-500" : "text-red-500"}>
-                                {mostProbable[6] === lrResult >= 50 ? "Analysis from image and features agree using 50% threshold." : "WARNING: Analysis from image and features DISAGREE using 50% threshold. Please proceed with care."}
-                            </span>
-                        </div>
-                    </>
-                }
-                <div className="border-t border-gray-200 mt-3 pb-6"/>
-                <span>Help us to verify our conclusion by providing details that might not be visible in the image:</span>
-                <div className="grid grid-cols-2 gap-4 mt-3">
-                    {featureList.map((feature, idx) => (
-                        <DropDownList
-                            key={feature}
-                            idx={idx}
-                            label={normalize(feature)}
-                            onSelect={(newChoice) => setChosen(prev=> {
-                                const newList = [...prev];
-                                newList[idx] = newChoice;
-                                return newList;
-                            })}
-                            options={features[feature]}
-                            selected={chosen[idx]}
-                        />
-                    ))}
-                    <div key="clear" className="flex flex-col justify-end">
-                        <button
-                            className="border-2 border-red-500 text-red-500 px-4 py-2 rounded-lg hover:scale-105 hover:bg-red-50 transition-all duration-300"
-                            onClick={() => setChosen(prev => window.confirm("Clear all features?") ? new Array(featureList.length).fill("") : prev)}
-                        > Clear </button>
+                                {0 < validFeatureCount && validFeatureCount <= 3 &&
+                                    <h2 className="whitespace-pre-wrap text-orange-600">
+                                        {`You provided ${validFeatureCount} features, which might not provide an accurate result`}
+                                    </h2>
+                                }
+                            </>
+                        }
+                        { mostProbable.length > 0 && lrResult !== null &&
+                            <>
+                                <div className="border-t border-gray-200"/>
+                                <div className="flex items-center justify-center">
+                                    <span className={mostProbable[6] === lrResult >= 50 ? "text-green-500" : "text-red-500"}>
+                                        {mostProbable[6] === lrResult >= 50 ? "Analysis from image and features agree using 50% threshold." : "WARNING: Analysis from image and features DISAGREE using 50% threshold. Please proceed with care."}
+                                    </span>
+                                </div>
+                            </>
+                        }
                     </div>
-
+                </div>
+                <div className="w-full flex-col">
+                    <span>Help us to verify our conclusion by providing details that might not be visible in the image:</span>
+                    <div className="grid grid-cols-2 gap-4 mt-3">
+                        {featureList.map((feature, idx) => (
+                            <DropDownList
+                                key={feature}
+                                idx={idx}
+                                label={normalize(feature)}
+                                onSelect={(newChoice) => setChosen(prev=> {
+                                    const newList = [...prev];
+                                    newList[idx] = newChoice;
+                                    return newList;
+                                })}
+                                options={features[feature]}
+                                selected={chosen[idx]}
+                            />
+                        ))}
+                        <div key="clear" className="flex flex-col justify-end">
+                            <button
+                                className="border-2 border-red-500 text-red-500 px-4 py-2 rounded-lg hover:scale-105 hover:bg-red-50 transition-all duration-300"
+                                onClick={() => setChosen(prev => window.confirm("Clear all features?") ? new Array(featureList.length).fill("") : prev)}
+                            > Clear </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
