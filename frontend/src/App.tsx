@@ -248,8 +248,8 @@ function App() {
             <div className="w-full border-r border-gray-200 flex items-center justify-center p-6 justify-items-center">
                 <div className="w-full h-full flex items-center justify-center justify-items-center relative" >
                     <video ref={videoRef} className="hidden"/>
-                    <img src={imageUrl || null} alt="Live Image" className="absolute z-10 cursor-pointer" />
-                    <img src={detectionBoxesUrl || null} alt="" className="absolute z-20 cursor-pointer"/>
+                    <img src={imageUrl || undefined} alt="Live Image" className="absolute z-10 cursor-pointer" />
+                    <img src={detectionBoxesUrl || undefined} alt="" className="absolute z-20 cursor-pointer"/>
                     <button
                         onClick={() => {
                             isCaptured.current = !isCaptured.current;
