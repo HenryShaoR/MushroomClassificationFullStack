@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request
 from PIL import Image
 from fastapi.middleware.cors import CORSMiddleware
 from ultralytics import YOLO
+import torch
 
 
 CLS_THRESHOLD = 0.3
@@ -53,7 +54,8 @@ async def detect(request: Request) -> List[Tuple[int, int, int, int]]:
     results = det(im, verbose=False)
     out = []
     for r in results:
-        for x1, y1, x2, y2 in r.boxes.xyxy.cpu().tolist():
+        xyxy = r.boxes.xyxy.cuda().tolist() if torch.cuda.is_available() else r.boxes.xyxy.cpu().tolist()
+        for x1, y1, x2, y2 in xyxy:
             out.append((int(x1), int(y1), int(x2), int(y2)))
     return out
 
@@ -68,10 +70,11 @@ async def analyze(request: Request) -> List[Tuple[str, int, int, int, int, float
     if not image:
         return []
     im = decode_image_to_pil(image)
-    det_results = det(im, verbose=False)
+    det_results = det(im, verbose=False, max_det=5)
     out = []
     for r in det_results:
-        for x1, y1, x2, y2 in r.boxes.xyxy.cpu().tolist():
+        xyxy = r.boxes.xyxy.cuda().tolist() if torch.cuda.is_available() else r.boxes.xyxy.cpu().tolist()
+        for x1, y1, x2, y2 in xyxy:
             crop = im.crop((x1, y1, x2, y2))
             cls_res = cls(crop, verbose=False)
             if cls_res and getattr(cls_res[0], "probs", None):
