@@ -16,6 +16,12 @@ function App() {
     const isCaptured = useRef<boolean>(false);
     const isAnalysing = useRef<boolean>(false);
 
+    const vidCvs = document.createElement('canvas');
+    const vidCtx = vidCvs.getContext('2d');
+
+    const boxCvs = document.createElement('canvas');
+    const boxCtx = boxCvs.getContext('2d');
+
     const getPercentageColour = (percentage: number | null) => {
         return  percentage === null ? "text-red-600" :
             percentage > 80 ?
@@ -137,44 +143,42 @@ function App() {
     const {detectionBoxesUrl} = useMemo(() => {
         if (detectionBoxes.length === 0) return {detectionBoxesUrl: ''};
 
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
+        const scale = 0.5;
+        boxCvs.width = w;
+        boxCvs.height = h;
 
-        canvas.width = w;
-        canvas.height = h;
-
-        if (!ctx) {
+        if (!boxCtx) {
             console.error("Cannot find Canvas Rendering Context");
             return {detectionBoxesUrl: ''};
         }
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        boxCtx.clearRect(0, 0, w, h);
 
         detectionBoxes.forEach(([species, x, y, x2, y2, conf, is_poisonous]) => {
-            ctx.strokeStyle = 'blue';
-            ctx.lineWidth = 5;
-            ctx.strokeRect(x, y, x2 - x, y2 - y);
+            boxCtx.strokeStyle = 'blue';
+            boxCtx.lineWidth = 5 * scale;
+            boxCtx.strokeRect(x, y, x2 - x, y2 - y);
 
             if(isCaptured.current) {
                 const text = `${Math.round(conf*10000) / 100.0}% is ${species} (${is_poisonous ? 'poisonous' : 'edible'})`;
-                const fontSize = 30;
-                ctx.font = `${fontSize}px Arial`;
-                ctx.fillStyle = 'white';
+                const fontSize = 30 * scale;
+                boxCtx.font = `${fontSize}px Arial`;
+                boxCtx.fillStyle = 'white';
 
                 const backgroundColor = 'blue';
 
-                const textWidth = ctx.measureText(text).width;
+                const textWidth = boxCtx.measureText(text).width;
                 const textHeight = fontSize;
 
-                const padding = 10;
-                ctx.fillStyle = backgroundColor;
-                ctx.fillRect(x, y, textWidth + 2 * padding, textHeight + 2 * padding);
+                const padding = 10 * scale;
+                boxCtx.fillStyle = backgroundColor;
+                boxCtx.fillRect(x, y, textWidth + 2 * padding, textHeight + 2 * padding);
 
-                ctx.fillStyle = 'white';
-                ctx.fillText(text, x + padding, y + textHeight + padding);
+                boxCtx.fillStyle = 'white';
+                boxCtx.fillText(text, x + padding, y + textHeight + padding);
             }
         });
-        return {detectionBoxesUrl: canvas.toDataURL('image/png')};
+        return {detectionBoxesUrl: boxCvs.toDataURL('image/png')};
     }, [detectionBoxes, w, h]);
 
     const {mostProbable} = useMemo(() => ({
@@ -220,19 +224,16 @@ function App() {
             const fps = 20;
             const interval = 1000 / fps;
 
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-
             setInterval(() => {
                 if (!isCaptured.current && videoRef.current && !isAnalysing.current) {
                     const video = videoRef.current;
 
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
+                    vidCvs.width = video.videoWidth;
+                    vidCvs.height = video.videoHeight;
 
-                    if (video && ctx) {
-                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                        const base64 = canvas.toDataURL('image/png');
+                    if (video && vidCtx) {
+                        vidCtx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+                        const base64 = vidCvs.toDataURL('image/png');
                         setImageUrl(base64);
                     }
                 }
