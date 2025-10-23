@@ -249,8 +249,8 @@ function App() {
             <div className="w-full border-r border-gray-200 flex items-center justify-center p-6 justify-items-center">
                 <div className="w-full h-full flex items-center justify-center justify-items-center relative" >
                     <video ref={videoRef} className="hidden"/>
-                    <img src={imageUrl || undefined} alt="Live Image" className="absolute z-10 cursor-pointer" />
-                    <img src={detectionBoxesUrl || undefined} alt="" className="absolute z-20 cursor-pointer"/>
+                    <img src={imageUrl || undefined} alt="Live Image" className="absolute z-10" />
+                    <img src={detectionBoxesUrl || undefined} alt="" className="absolute z-20"/>
                     <button
                         onClick={() => {
                             isCaptured.current = !isCaptured.current;
@@ -281,7 +281,7 @@ function App() {
                                 "We didn't find any mushrooms in the image":
                                 <>
                                     The most probable mushroom in the image is&nbsp;
-                                    {mostProbable[0]}
+                                    <button className="underline text-blue-500" onClick={() => {window.open(`https://www.google.com/search?q=${encodeURIComponent(mostProbable[0])}`, '_blank')}}>{mostProbable[0]}</button>
                                     <span className={mostProbable[6] ? "text-red-600" : "text-green-600"}>{mostProbable[6] ? ' (poisonous)' : ' (edible)'}</span>.
                                     <br/>
                                     We are
