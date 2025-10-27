@@ -179,7 +179,7 @@ function App() {
             }
         });
         return {detectionBoxesUrl: boxCvs.toDataURL('image/png')};
-    }, [detectionBoxes, w, h]);
+    }, [detectionBoxes, boxCvs, w, h, boxCtx]);
 
     const {mostProbable} = useMemo(() => ({
         mostProbable: detectionBoxes.length === 0 || !isCaptured.current ? [] : detectionBoxes
@@ -209,10 +209,10 @@ function App() {
         getCameraStream().then();
 
         // Cleanup function to stop the stream when the component unmounts
+        const videoRefCurrent = videoRef.current;
         return () => {
-            const video = videoRef.current;
-            if (video && video.srcObject) {
-                const stream = video.srcObject as MediaStream;
+            if (videoRefCurrent && videoRefCurrent.srcObject) {
+                const stream = videoRefCurrent.srcObject as MediaStream;
                 const tracks = stream.getTracks();
                 tracks.forEach(track => track.stop());
             }
@@ -241,7 +241,7 @@ function App() {
         };
 
         captureFrameAtInterval()
-    }, []);
+    }, [vidCtx, vidCvs]);
 
     return (
         <div className="h-screen w-full flex space-x-4 bg-gray-100">
