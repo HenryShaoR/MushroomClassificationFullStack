@@ -26,3 +26,4 @@ dist-ssr
 backend/*.pt
 backend/*.pkl
 backend/.venv
+backend/__pycache__
