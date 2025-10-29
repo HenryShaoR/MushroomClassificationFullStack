@@ -18,7 +18,7 @@ npm install
 
 ---
 
-### ✅ Configure the Project
+## ✅ Configure the Project
 
 1. **Download Pretrained Model** (or train your own model [here](https://github.com/HenryShaoR/MushroomClassification))
     - Go to this repository's [Releases](https://github.com/HenryShaoR/MushroomClassificationFullStack/releases) section and download the model files.

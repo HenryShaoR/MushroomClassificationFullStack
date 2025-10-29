@@ -224,7 +224,7 @@ function App() {
             const fps = 20;
             const interval = 1000 / fps;
 
-            setInterval(() => {
+            return window.setInterval(() => {
                 if (!isCaptured.current && videoRef.current && !isAnalysing.current) {
                     const video = videoRef.current;
 
@@ -240,7 +240,8 @@ function App() {
             }, interval);
         };
 
-        captureFrameAtInterval()
+        const intervalId = captureFrameAtInterval();
+        return () => clearInterval(intervalId);
     }, [vidCtx, vidCvs]);
 
     return (
@@ -321,8 +322,8 @@ function App() {
                             <>
                                 <div className="border-t border-gray-200"/>
                                 <div className="flex items-center justify-center">
-                                    <span className={mostProbable[6] === lrResult >= 50 ? "text-green-500" : "text-red-500"}>
-                                        {mostProbable[6] === lrResult >= 50 ? "Analysis from image and features agree using 50% threshold." : "WARNING: Analysis from image and features DISAGREE using 50% threshold. Please proceed with care."}
+                                    <span className={mostProbable[6] === (lrResult >= 50) ? "text-green-500" : "text-red-500"}>
+                                        {mostProbable[6] === (lrResult >= 50) ? "Analysis from image and features agree using 50% threshold." : "WARNING: Analysis from image and features DISAGREE using 50% threshold. Please proceed with care."}
                                     </span>
                                 </div>
                             </>
