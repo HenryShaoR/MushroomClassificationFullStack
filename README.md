@@ -8,11 +8,13 @@ This project uses a YOLO-based model and a linear regression model to classify m
 
 Install required packages by running:
 
+1. In `./backend`:
 ```shell
-cd ./backend
 pip install -r requirements.txt
+```
 
-cd ../frontend
+2. In `./frontend`:
+```shell
 npm install
 ```
 
@@ -101,4 +103,4 @@ It has been tested based on the following configurations with Node.js v23.9.0:
 | OS                | CPU              | GPU                                           | RAM         | Storage      |
 |-------------------|------------------|-----------------------------------------------|-------------|--------------|
 | Windows 11 (25H2) | Intel i9-13980HX | NVIDIA RTX 4080 Laptop (12GB VRAM, CUDA 13.0) | 32G DDR5    | 2TB NVMe SSD |
-| macOS (26.0.1)    | Apple M3         | Integrated GPU                                | 16G Unified | 1TB SSD      |
+| macOS (26.0.1)    | Apple M3         | Integrated GPU                                | 24G Unified | 2TB SSD      |
