@@ -1,3 +1,0 @@
-torch==2.8.0+cu129
-torchvision==0.23.0+cu129
---index-url https://download.pytorch.org/whl/cu129
