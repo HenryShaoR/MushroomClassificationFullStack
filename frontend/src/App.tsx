@@ -7,6 +7,9 @@ import {FiPause, FiPlay} from "react-icons/fi";
 
 function App() {
     const baseUrl = "http://localhost:8000";
+    const realtimeFps = useRef(0);
+    const displayedFps = useRef(0);
+    const ready = useRef(true);
 
     const [imageUrl, setImageUrl] = useState<string>('');
     const [chosen, setChosen] = useState<(string)[]>(new Array(featureList.length).fill(""));
@@ -116,6 +119,7 @@ function App() {
                 isAnalysing.current = false;
             }
         } else {
+            ready.current = false;
             try {
                 const res = await fetch(`${baseUrl}/detect`, {
                     method: "POST",
@@ -132,9 +136,21 @@ function App() {
                 setDetectionBoxes(detectionBoxes as DetectionBox[]);
             } catch (error) {
                 console.error(error);
+            } finally {
+                ready.current = true;
             }
+            realtimeFps.current += 1;
         }
     }, [imageUrl]);
+
+    useEffect(() => {
+        const intervalId = window.setInterval(() => {
+            displayedFps.current = realtimeFps.current;
+            realtimeFps.current = 0;
+        }, 1000);
+
+        return () => clearInterval(intervalId);
+    }, []);
 
     useEffect(() => {
         handleYOLO(false).then();
@@ -159,7 +175,7 @@ function App() {
             boxCtx.lineWidth = 5 * scale;
             boxCtx.strokeRect(x, y, x2 - x, y2 - y);
 
-            if(isCaptured.current) {
+            if(isCaptured.current && !yoloLoading) {
                 const text = `${Math.round(conf*10000) / 100.0}% is ${species} (${is_poisonous ? 'poisonous' : 'edible'})`;
                 const fontSize = 30 * scale;
                 boxCtx.font = `${fontSize}px Arial`;
@@ -179,7 +195,7 @@ function App() {
             }
         });
         return {detectionBoxesUrl: boxCvs.toDataURL('image/png')};
-    }, [detectionBoxes, boxCvs, w, h, boxCtx]);
+    }, [detectionBoxes, boxCvs, w, h, boxCtx, yoloLoading]);
 
     const {mostProbable} = useMemo(() => ({
         mostProbable: detectionBoxes.length === 0 || !isCaptured.current ? [] : detectionBoxes
@@ -221,11 +237,10 @@ function App() {
 
     useEffect(() => {
         const captureFrameAtInterval = () => {
-            const fps = 20;
-            const interval = 1000 / fps;
+            // const interval = 1000 / TARGET_FPS;
 
             return window.setInterval(() => {
-                if (!isCaptured.current && videoRef.current && !isAnalysing.current) {
+                if (!isCaptured.current && videoRef.current && !isAnalysing.current && ready.current) {
                     const video = videoRef.current;
 
                     vidCvs.width = video.videoWidth;
@@ -237,7 +252,7 @@ function App() {
                         setImageUrl(base64);
                     }
                 }
-            }, interval);
+            });
         };
 
         const intervalId = captureFrameAtInterval();
@@ -249,6 +264,9 @@ function App() {
             {/* Left: Image upload/display */}
             <div className="w-full border-r border-gray-200 flex items-center justify-center p-6 justify-items-center">
                 <div className="w-full h-full flex items-center justify-center justify-items-center relative" >
+                    <p className="absolute z-30 top-5 left-5 px-4 py-2 text-sm font-light bg-white rounded-xl shadow-lg transition-all text-green-700">
+                        { displayedFps.current } FPS
+                    </p>
                     <video ref={videoRef} className="hidden"/>
                     <img src={imageUrl || undefined} alt="Live Image" className="absolute z-10" />
                     <img src={detectionBoxesUrl || undefined} alt="" className="absolute z-20"/>
@@ -256,7 +274,6 @@ function App() {
                         onClick={() => {
                             isCaptured.current = !isCaptured.current;
                             if (isCaptured.current) {
-                                setDetectionBoxes([]);
                                 handleYOLO(true).then();
                             }
                         }}
