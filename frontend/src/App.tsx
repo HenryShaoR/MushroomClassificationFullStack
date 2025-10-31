@@ -252,7 +252,7 @@ function App() {
                         setImageUrl(base64);
                     }
                 }
-            });
+            }, 10);
         };
 
         const intervalId = captureFrameAtInterval();
